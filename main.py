@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import yt_dlp
 import re
 
+from fastapi import FastAPI, HTTPException, Header
+from fastapi.middleware.cors import CORSMiddleware
+import yt_dlp
+
 app = FastAPI(title="A7 Media API")
 
 app.add_middleware(
@@ -13,17 +17,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔥 الباسورد السري بتاعك (غيره براحتك من هنا ووزعه للمستخدمين) 🔥
-API_PASSWORD = "2026"
+API_PASSWORD = "A7_VIP_2026"
 
 @app.get("/api/extract")
 async def extract_media(url: str, audio_only: bool = False, x_api_key: str = Header(None)):
     
-    # 1. التحقق من الباسورد
     if x_api_key != API_PASSWORD:
         raise HTTPException(status_code=401, detail="عذراً، الباسورد غير صحيح أو منتهي الصلاحية! ❌")
 
-    # 2. إعدادات استخراج الرابط المباشر
     target_format = 'bestaudio[ext=m4a]/bestaudio/best' if audio_only else 'best[ext=mp4]/best'
 
     ydl_opts = {
@@ -32,6 +33,7 @@ async def extract_media(url: str, audio_only: bool = False, x_api_key: str = Hea
         'no_warnings': True,
         'simulate': True, 
         'nocheckcertificate': True,
+        'cookiefile': 'cookies.txt', # 🔥 السطر السحري: استخدام الكوكيز لاختراق حماية يوتيوب 🔥
     }
 
     try:
@@ -44,7 +46,7 @@ async def extract_media(url: str, audio_only: bool = False, x_api_key: str = Hea
 
             return {
                 "success": True,
-                "video_id": info.get('id'), # 🎯 مهم جداً عشان نشغل الـ Embed في فلاتر
+                "video_id": info.get('id'), 
                 "title": info.get('title'),
                 "thumbnail": info.get('thumbnail'),
                 "duration": info.get('duration'), 
