@@ -21,14 +21,20 @@ async def extract_media(url: str, audio_only: bool = False, x_api_key: str = Hea
         raise HTTPException(status_code=401, detail="عذراً، الباسورد غير صحيح أو منتهي الصلاحية! ❌")
 
     # 🔥 التعديل العبقري: شلنا شرط الصيغة من الإعدادات عشان نمنع الإيرور نهائياً 🔥
+    # 🔥 التمويه الأعمق: الاستغناء عن الكوكيز والويب تماماً 🔥
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
         'simulate': True, 
         'nocheckcertificate': True,
-        'cookiefile': 'cookies.txt', 
+        # امسح سطر الـ cookiefile خالص من هنا
         'extractor_args': {
-            'youtube': ['player_client=android,web']
+            # إجبار يوتيوب يشوفنا كتطبيق موبايل فقط (أيفون وأندرويد) للهروب من اختبار البوت
+            'youtube': ['player_client=ios,android'] 
+        },
+        # إضافة User-Agent بتاع أيفون عشان نكمل التمويه
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
         }
     }
 
