@@ -1,11 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 import yt_dlp
-import re
-
-from fastapi import FastAPI, HTTPException, Header
-from fastapi.middleware.cors import CORSMiddleware
-import yt_dlp
 
 app = FastAPI(title="A7 Media API")
 
@@ -25,7 +20,8 @@ async def extract_media(url: str, audio_only: bool = False, x_api_key: str = Hea
     if x_api_key != API_PASSWORD:
         raise HTTPException(status_code=401, detail="عذراً، الباسورد غير صحيح أو منتهي الصلاحية! ❌")
 
-    target_format = 'bestaudio[ext=m4a]/bestaudio/best' if audio_only else 'best[ext=mp4]/best'
+    # 🔥 التعديل هنا: تبسيط الطلب عشان يوتيوب ميعترضش (أحسن صوت أو أحسن فيديو مدمج)
+    target_format = 'bestaudio' if audio_only else 'best'
 
     ydl_opts = {
         'format': target_format,
@@ -33,14 +29,28 @@ async def extract_media(url: str, audio_only: bool = False, x_api_key: str = Hea
         'no_warnings': True,
         'simulate': True, 
         'nocheckcertificate': True,
-        'cookiefile': 'cookies.txt', # 🔥 السطر السحري: استخدام الكوكيز لاختراق حماية يوتيوب 🔥
+        'cookiefile': 'cookies.txt', 
+        'extractor_args': {
+            'youtube': ['player_client=android,web']
+        }
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
+            
             direct_url = info.get('url')
             
+            # بحث احتياطي لو الرابط المباشر مستخبي
+            if not direct_url and 'formats' in info:
+                formats = info['formats']
+                if audio_only:
+                    audio_formats = [f for f in formats if f.get('vcodec') == 'none']
+                    if audio_formats:
+                        direct_url = audio_formats[-1].get('url')
+                else:
+                    direct_url = formats[-1].get('url')
+
             if not direct_url:
                 raise HTTPException(status_code=400, detail="لم نتمكن من استخراج الرابط المباشر")
 
@@ -51,7 +61,8 @@ async def extract_media(url: str, audio_only: bool = False, x_api_key: str = Hea
                 "thumbnail": info.get('thumbnail'),
                 "duration": info.get('duration'), 
                 "direct_url": direct_url, 
-                "ext": "m4a" if audio_only else "mp4"
+                # 🔥 هنجيب الصيغة الحقيقية اللي يوتيوب بعتها (سواء m4a أو webm أو mp4)
+                "ext": info.get('ext', 'mp3' if audio_only else 'mp4') 
             }
 
     except Exception as e:
